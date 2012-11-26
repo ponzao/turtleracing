@@ -11,32 +11,35 @@
   (not (and (<= 0 x (:width track))
             (<= 0 y (:height track)))))
 
+(defn calculate-position
+  [[x y :as position] direction]
+  (let [length 1]
+    [(+ x (* length (Math/cos (Math/toRadians direction))))
+     (+ y (* length (Math/sin (Math/toRadians direction))))]))
+
 (defn move
   [[x y :as position] direction]
-  (let [new-position (case direction
-                       :up [x (dec (dec y))]
-                       :down [x (inc (inc y))]
-                       :left [(dec (dec x)) y]
-                       :right [(inc (inc x)) y])]
+  (let [new-position (calculate-position position direction)]
     (if-not (out-of-bounds? new-position)
       new-position
       position)))
 
 (def turtle
   {:position [10 10]
-   :direction :down})
+   :direction 90})
 
-(def directions
-  {:up [:left :right]
-   :right [:up :down]
-   :down [:right :left]
-   :left [:down :up]})
+(defn constrain
+  [n]
+  (cond (< n 0) 359
+        (< 360 n) 1
+        :else n))
 
 (defn turn
   [direction old-direction]
-  (case direction
-    :left ((directions old-direction) 0)
-    :right ((directions old-direction) 1)))
+  (constrain
+   (case direction
+     :left (- old-direction 1)
+     :right (+ old-direction 1))))
 
 (def turn-left
   (partial turn :left))
