@@ -14,10 +14,10 @@
 (defn move
   [[x y :as position] direction]
   (let [new-position (case direction
-                       :up [x (dec y)]
-                       :down [x (inc y)]
-                       :left [(dec x) y]
-                       :right [(inc x) y])]
+                       :up [x (dec (dec y))]
+                       :down [x (inc (inc y))]
+                       :left [(dec (dec x)) y]
+                       :right [(inc (inc x)) y])]
     (if-not (out-of-bounds? new-position)
       new-position
       position)))
@@ -52,23 +52,32 @@
            :left {:direction (turn-left (:direction turtle))}
            :right {:direction (turn-right (:direction turtle))})))
 
+(defn update-state
+  [state {:keys [name command]}]
+  (assoc state name
+         (control-turtle (get state name turtle) command)))
+
 (def broadcast-ch
   (channel))
 
-(def state
-  (atom {}))
+(def combined-ch
+  (channel))
+
+(receive-all
+ combined-ch
+ (siphon (reductions* update-state {} combined-ch)
+         broadcast-ch))
 
 (defn game-handler
   [ch _]
-  (let [parsed-ch (channel)]
-    (receive ch
-             (fn [name]
-               (siphon (map* keyword ch) parsed-ch)
-               (siphon (map* (fn [command]
-                               (swap! state assoc name (control-turtle (get @state name turtle) command)))
-                             parsed-ch)
-                       broadcast-ch)
-               (siphon (map* cheshire/generate-string broadcast-ch) ch)))))
+  (receive ch
+           (fn [name]
+             (siphon (map* (fn [command]
+                             {:command (keyword command)
+                              :name name})
+                           ch)
+                     combined-ch)
+             (siphon (map* cheshire/generate-string broadcast-ch) ch))))
 
 (def http-server
   (start-http-server #'game-handler {:port 8008 :websocket true}))
