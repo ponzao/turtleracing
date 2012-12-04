@@ -22,8 +22,6 @@
       console.log('opened');
       ws.send(name);
     };
-    var oldX = 10;
-    var oldY = 10;
     ws.onmessage = function(ev) {
       console.log(ev.data);
       draw($.parseJSON(ev.data));
