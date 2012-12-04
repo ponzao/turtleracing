@@ -30,16 +30,16 @@
 
 (defn constrain
   [n]
-  (cond (< n 0) 359
-        (< 360 n) 1
+  (cond (< n 0) 350
+        (< 360 n) 10
         :else n))
 
 (defn turn
   [direction old-direction]
   (constrain
    (case direction
-     :left (- old-direction 1)
-     :right (+ old-direction 1))))
+     :left (- old-direction 10)
+     :right (+ old-direction 10))))
 
 (def turn-left
   (partial turn :left))
