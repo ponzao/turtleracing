@@ -60,27 +60,25 @@
   (assoc state name
          (control-turtle (get state name turtle) command)))
 
-(def broadcast-ch
-  (channel))
-
-(def combined-ch
-  (channel))
-
-(receive-all
- combined-ch
- (siphon (reductions* update-state {} combined-ch)
-         broadcast-ch))
-
 (defn game-handler
-  [ch _]
-  (receive ch
-           (fn [name]
-             (siphon (map* (fn [command]
-                             {:command (keyword command)
-                              :name name})
-                           ch)
-                     combined-ch)
-             (siphon (map* cheshire/generate-string broadcast-ch) ch))))
+  [combined-ch broadcast-ch]
+  (fn [ch _]
+    (receive ch (fn [name]
+                  (siphon (map* (fn [command]
+                                  {:command (keyword command)
+                                   :name name})
+                                ch)
+                          combined-ch)
+                  (siphon (map* cheshire/generate-string broadcast-ch) ch)))))
 
-(def http-server
-  (start-http-server #'game-handler {:port 8008 :websocket true}))
+(defn -main
+  []
+  (let [broadcast-ch (channel)
+        combined-ch (channel)]
+    (receive-all
+      combined-ch
+      (siphon (reductions* update-state {} combined-ch) broadcast-ch))
+    (start-http-server (game-handler combined-ch broadcast-ch)
+                       {:port 8008 :websocket true})))
+
+
